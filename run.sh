@@ -6,4 +6,4 @@
 ##
 
 python hw1.py
-imgcat output/*
+#imgcat output/*

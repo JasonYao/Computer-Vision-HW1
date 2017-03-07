@@ -150,11 +150,8 @@ def print_q3_histogram(img, hist, size):
     return hist
 
 
-def get_epsilon(img):
-    return -5000
-
-def detect_edges(real, imaginary, img, size):
-    epsilon = get_epsilon(img)
+def detect_edges(real, imaginary, size):
+    epsilon = EPSILON
 
     ratio = np.zeros((size, size))
     edge_array = np.zeros((size, size))
@@ -168,40 +165,38 @@ def detect_edges(real, imaginary, img, size):
     return edge_array * NORMALISATION
 
 
-def get_values(img_name, should_print_images):
+def get_values(img, should_print_images):
+    # Image dimensions
+    height, width = img.shape
+
     # 12 combinations of parameters, let lambda_{0 -> 11} = (sigma, theta)
     sigmas = [1, 3, 6]
     thetas = [0, math.pi / 4, math.pi / 2, (3 * math.pi) / 4]
 
-    img = cv2.imread(img_name, cv2.IMREAD_GRAYSCALE)
     count = 0
 
     hist_real = np.ones(img.shape[:2], np.float64)  # array to hold min of weights for each real pixel
     hist_imag = np.zeros(img.shape[:2], np.float64)  # array to hold max of weights for each imaginary pixel
     hist = np.zeros(img.shape[:2], np.float64)
 
-    # Q1: Now we create all the different morlet wavelets
-    print("Q1: Generating Morlet Wavelet images now")
-    height, width = img.shape
-
     for sigma in sigmas:
         for theta in thetas:
             hist, hist_real, hist_imag = print_q2_image(img, sigma, theta, count, hist_real, hist_imag, should_print_images, height - 1)
             count += 1
 
-
-    return img, hist, hist_real, hist_imag, height, width
-
+    return hist, hist_real, hist_imag, height, width
 
 
 def main():
-
-    circle_img, circle_hist, circle_hist_real, circle_hist_imag, circle_height, circle_width = get_values(INPUT_IMAGE, True)
+    # Q1: Now we create all the different morlet wavelets
+    print("Q1: Generating Morlet Wavelet images now")
+    circle_img = cv2.imread(INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
+    circle_hist, circle_hist_real, circle_hist_imag, circle_height, circle_width = get_values(circle_img, True)
 
     # Q2: Now we output the original image with a gaussian blur
     print("Q2: Generating gaussian-blurred image now")
     gaussian_img = gaussian_blur(circle_img)
-    cv2.putText(gaussian_img, "Gaussian Blur", (0, 160),
+    cv2.putText(gaussian_img, "Gaussian Blur", (0, circle_height - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
     cv2.imwrite("output/gaussian.jpg", gaussian_img)
 
@@ -224,19 +219,20 @@ def main():
     plt.gcf().clear()
 
     # Q4a: Edge detection for input image
-    print("Q4: Generating edge-detection for the input image")
-    edge_detection = detect_edges(circle_hist_real, circle_hist_imag, circle_img, 168)
+    print("Q4a: Generating edge-detection for the input image")
+    edge_detection = detect_edges(circle_hist_real, circle_hist_imag, circle_height - 1)
 
-    cv2.putText(edge_detection, "Edge Detection:", (0, 150),
+    cv2.putText(edge_detection, "Edge Detection:", (0, circle_height - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
-    cv2.putText(edge_detection, "Circle", (50, 160),
+    cv2.putText(edge_detection, "Circle", (50, circle_height - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
     cv2.imwrite("output/edge.jpg", edge_detection)
 
     # Q4b: Edge detection for pentagon image
-    print("Q4: Generating edge-detection for the pentagon")
-    pentagon_img, pentagon_hist, pentagon_hist_real, pentagon_hist_imag, pentagon_height, pentagon_width = get_values(PENTAGON_LEFT, False)
-    pentagon_edge_detection = detect_edges(pentagon_hist_real, pentagon_hist_imag, pentagon_img, pentagon_height)
+    print("Q4b: Generating edge-detection for the pentagon (takes ~20 seconds)")
+    pentagon_img = cv2.imread(PENTAGON_LEFT, cv2.IMREAD_GRAYSCALE)
+    pentagon_hist, pentagon_hist_real, pentagon_hist_imag, pentagon_height, pentagon_width = get_values(pentagon_img, False)
+    pentagon_edge_detection = detect_edges(pentagon_hist_real, pentagon_hist_imag, pentagon_height)
 
     cv2.putText(pentagon_edge_detection, "Edge Detection:", (0, pentagon_width - 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
