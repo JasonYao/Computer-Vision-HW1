@@ -13,4 +13,5 @@ do the following:
 ## Dependencies
 - OpenCV 2
 - Python 3
+- [imgcat](https://raw.githubusercontent.com/gnachman/iTerm2/master/tests/imgcat) (optional, used to view the generated images in the terminal)
 
