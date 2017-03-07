@@ -1,0 +1,5 @@
+# IDE ignores
+.idea/
+
+# Output generation ignores
+output/
