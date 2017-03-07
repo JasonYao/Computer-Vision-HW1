@@ -115,6 +115,7 @@ def print_q2_image(img, sigma, theta, count, hist_real, hist_imag, should_print_
         out_img = add_text_to_img(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", real")
         cv2.imwrite("output/out_img_real_" + str(count) + ".jpg", out_img)
         plt.imshow(np.real(main_kernel), cmap=plt.get_cmap('gray'))
+        plt.title("S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", real")
         plt.savefig("output/out_kernel_real_" + str(count) + ".png")
         plt.gcf().clear()
 
@@ -127,6 +128,7 @@ def print_q2_image(img, sigma, theta, count, hist_real, hist_imag, should_print_
         out_img = add_text_to_img(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", imag")
         cv2.imwrite("output/out_img_imag_" + str(count) + ".jpg", out_img)
         plt.imshow(np.imag(main_kernel), cmap=plt.get_cmap('gray'))
+        plt.title("S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", imag")
         plt.savefig("output/out_kernel_imag_" + str(count) + ".png")
         plt.gcf().clear()
 
