@@ -112,8 +112,7 @@ def print_q2_image(img, sigma, theta, count, hist_real, hist_imag, should_print_
     out_img = cv2.filter2D(img, -1, np.real(main_kernel), out_img, (-1, -1), cv2.BORDER_DEFAULT)
 
     if should_print_image:
-        cv2.putText(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", real", (0, 160),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
+        out_img = add_text_to_img(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", real")
         cv2.imwrite("output/out_img_real_" + str(count) + ".jpg", out_img)
         plt.imshow(np.real(main_kernel), cmap=plt.get_cmap('gray'))
         plt.savefig("output/out_kernel_real_" + str(count) + ".png")
@@ -125,8 +124,7 @@ def print_q2_image(img, sigma, theta, count, hist_real, hist_imag, should_print_
     out_img = cv2.filter2D(img, -1, np.imag(main_kernel), out_img, (-1, -1), cv2.BORDER_DEFAULT)
 
     if should_print_image:
-        cv2.putText(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", imag", (0, 160),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
+        out_img = add_text_to_img(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", imag")
         cv2.imwrite("output/out_img_imag_" + str(count) + ".jpg", out_img)
         plt.imshow(np.imag(main_kernel), cmap=plt.get_cmap('gray'))
         plt.savefig("output/out_kernel_imag_" + str(count) + ".png")
@@ -187,6 +185,24 @@ def get_values(img, should_print_images):
     return hist, hist_real, hist_imag, height, width
 
 
+def add_text_to_img(img, text):
+    height, width = img.shape
+
+    if isinstance(text, list):
+        # Multiple text line
+        number_of_text_lines = len(text)
+        text = text[::-1]
+
+        for text_line_index in range(number_of_text_lines):
+            cv2.putText(img, text[text_line_index], (0, height - (10 * (text_line_index + 1))),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
+    else:
+        cv2.putText(img, text, (0, height - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
+
+    return img
+
+
 def main():
     # Q1: Now we create all the different morlet wavelets
     print("Q1: Generating Morlet Wavelet images now")
@@ -196,8 +212,7 @@ def main():
     # Q2: Now we output the original image with a gaussian blur
     print("Q2: Generating gaussian-blurred image now")
     gaussian_img = gaussian_blur(circle_img)
-    cv2.putText(gaussian_img, "Gaussian Blur", (0, circle_height - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
+    gaussian_img = add_text_to_img(gaussian_img, "Gaussian Blur")
     cv2.imwrite("output/gaussian.jpg", gaussian_img)
 
     # Q3: Now we print out histograms for real and imaginary values
@@ -220,12 +235,8 @@ def main():
 
     # Q4a: Edge detection for input image
     print("Q4a: Generating edge-detection for the input image")
-    edge_detection = detect_edges(circle_hist_real, circle_hist_imag, circle_height - 1)
-
-    cv2.putText(edge_detection, "Edge Detection:", (0, circle_height - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
-    cv2.putText(edge_detection, "Circle", (50, circle_height - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
+    edge_detection_circle = detect_edges(circle_hist_real, circle_hist_imag, circle_height - 1)
+    edge_detection = add_text_to_img(edge_detection_circle, ["Edge Detection:", "Circle"])
     cv2.imwrite("output/edge.jpg", edge_detection)
 
     # Q4b: Edge detection for pentagon image
@@ -234,10 +245,7 @@ def main():
     pentagon_hist, pentagon_hist_real, pentagon_hist_imag, pentagon_height, pentagon_width = get_values(pentagon_img, False)
     pentagon_edge_detection = detect_edges(pentagon_hist_real, pentagon_hist_imag, pentagon_height)
 
-    cv2.putText(pentagon_edge_detection, "Edge Detection:", (0, pentagon_width - 20),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
-    cv2.putText(pentagon_edge_detection, "Pentagon", (50, pentagon_width - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
+    pentagon_edge_detection = add_text_to_img(pentagon_edge_detection, ["Edge Detection:", "Pentagon"])
     cv2.imwrite("output/edge_pentagon.jpg", pentagon_edge_detection)
 
 
