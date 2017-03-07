@@ -100,7 +100,7 @@ def init_kernel(sigma, theta):
     return kernel
 
 
-def print_q2_image(img, sigma, theta, count, hist_real, hist_imag):
+def print_q2_image(img, sigma, theta, count, hist_real, hist_imag, should_print_image, size):
     # Output image
     out_img = np.zeros(img.shape[:2], np.float64)  # Matrix of black pixels the same size as the input image
 
@@ -110,22 +110,29 @@ def print_q2_image(img, sigma, theta, count, hist_real, hist_imag):
     normalisation = cv2.normalize(main_kernel.real, np.zeros((WINDOW_SIZE, WINDOW_SIZE)), alpha=0, beta=255,
                                   norm_type=cv2.NORM_MINMAX)
     out_img = cv2.filter2D(img, -1, np.real(main_kernel), out_img, (-1, -1), cv2.BORDER_DEFAULT)
-    cv2.putText(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", real", (0, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
-    cv2.imwrite("output/out_img_real_" + str(count) + ".jpg", out_img)
-    plt.imshow(np.real(main_kernel), cmap=plt.get_cmap('gray'))
-    plt.savefig("output/out_kernel_real_" + str(count) + ".png")
-    plt.gcf().clear()
-    hist_real = print_q3_histogram(out_img, hist_real)
+
+    if should_print_image:
+        cv2.putText(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", real", (0, 160),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
+        cv2.imwrite("output/out_img_real_" + str(count) + ".jpg", out_img)
+        plt.imshow(np.real(main_kernel), cmap=plt.get_cmap('gray'))
+        plt.savefig("output/out_kernel_real_" + str(count) + ".png")
+        plt.gcf().clear()
+
+    hist_real = print_q3_histogram(out_img, hist_real, size)
 
     # We now normalise with 1 and output the imaginary image
     out_img = cv2.filter2D(img, -1, np.imag(main_kernel), out_img, (-1, -1), cv2.BORDER_DEFAULT)
-    cv2.putText(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", imag", (0, 160),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
-    cv2.imwrite("output/out_img_imag_" + str(count) + ".jpg", out_img)
-    plt.imshow(np.imag(main_kernel), cmap=plt.get_cmap('gray'))
-    plt.savefig("output/out_kernel_imag_" + str(count) + ".png")
-    plt.gcf().clear()
-    hist_imag = print_q3_histogram(out_img, hist_imag)
+
+    if should_print_image:
+        cv2.putText(out_img, "S: " + str(sigma) + ", T: " + str("%.2f" % theta) + ", imag", (0, 160),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
+        cv2.imwrite("output/out_img_imag_" + str(count) + ".jpg", out_img)
+        plt.imshow(np.imag(main_kernel), cmap=plt.get_cmap('gray'))
+        plt.savefig("output/out_kernel_imag_" + str(count) + ".png")
+        plt.gcf().clear()
+
+    hist_imag = print_q3_histogram(out_img, hist_imag, size)
 
     return np.dstack((hist_real, hist_imag)), hist_real, hist_imag
 
@@ -136,9 +143,9 @@ def gaussian_blur(img):
     return out
 
 
-def print_q3_histogram(img, hist):
-    for x in range(SIZE):
-        for y in range(SIZE):
+def print_q3_histogram(img, hist, size):
+    for x in range(size):
+        for y in range(size):
             hist[x][y] = max(hist[x][y], img[x][y])
     return hist
 
@@ -146,14 +153,14 @@ def print_q3_histogram(img, hist):
 def get_epsilon(img):
     return -5000
 
-def detect_edges(real, imaginary, img):
+def detect_edges(real, imaginary, img, size):
     epsilon = get_epsilon(img)
 
-    ratio = np.zeros((SIZE, SIZE))
-    edge_array = np.zeros((SIZE, SIZE))
+    ratio = np.zeros((size, size))
+    edge_array = np.zeros((size, size))
 
-    for i in range(SIZE):
-        for j in range(SIZE):
+    for i in range(size):
+        for j in range(size):
             ratio[i][j] = (real[i][j] + (0.001 + epsilon)) / (imaginary[i][j] + epsilon)
             diff = np.amax(ratio)
             edge_array[i][j] = 1 - (ratio[i][j] / diff)
@@ -161,33 +168,39 @@ def detect_edges(real, imaginary, img):
     return edge_array * NORMALISATION
 
 
-def get_values(img):
-    pass
-
-
-def main():
+def get_values(img_name, should_print_images):
     # 12 combinations of parameters, let lambda_{0 -> 11} = (sigma, theta)
     sigmas = [1, 3, 6]
     thetas = [0, math.pi / 4, math.pi / 2, (3 * math.pi) / 4]
 
-    img = cv2.imread(INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(img_name, cv2.IMREAD_GRAYSCALE)
     count = 0
 
-    hist_real = np.ones(img.shape[:2], np.float64)      # array to hold min of weights for each real pixel
-    hist_imag = np.zeros(img.shape[:2], np.float64)     # array to hold max of weights for each imaginary pixel
+    hist_real = np.ones(img.shape[:2], np.float64)  # array to hold min of weights for each real pixel
+    hist_imag = np.zeros(img.shape[:2], np.float64)  # array to hold max of weights for each imaginary pixel
     hist = np.zeros(img.shape[:2], np.float64)
 
     # Q1: Now we create all the different morlet wavelets
     print("Q1: Generating Morlet Wavelet images now")
+    height, width = img.shape
 
     for sigma in sigmas:
         for theta in thetas:
-            hist, hist_real, hist_imag = print_q2_image(img, sigma, theta, count, hist_real, hist_imag)
+            hist, hist_real, hist_imag = print_q2_image(img, sigma, theta, count, hist_real, hist_imag, should_print_images, height - 1)
             count += 1
+
+
+    return img, hist, hist_real, hist_imag, height, width
+
+
+
+def main():
+
+    circle_img, circle_hist, circle_hist_real, circle_hist_imag, circle_height, circle_width = get_values(INPUT_IMAGE, True)
 
     # Q2: Now we output the original image with a gaussian blur
     print("Q2: Generating gaussian-blurred image now")
-    gaussian_img = gaussian_blur(img)
+    gaussian_img = gaussian_blur(circle_img)
     cv2.putText(gaussian_img, "Gaussian Blur", (0, 160),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_4)
     cv2.imwrite("output/gaussian.jpg", gaussian_img)
@@ -195,7 +208,7 @@ def main():
     # Q3: Now we print out histograms for real and imaginary values
     print("Q3: Generating real & imaginary value histograms now")
     print("\tPlease wait, outputting real histogram")
-    plt.hist(hist[:, :, 0], 10)
+    plt.hist(circle_hist[:, :, 0], 10)
     plt.title("Real Values Histogram")
     plt.xlabel("Value")
     plt.ylabel("Frequency")
@@ -203,7 +216,7 @@ def main():
     plt.gcf().clear()
 
     print("\tPlease wait, outputting imaginary histogram")
-    plt.hist(hist[:, :, 1], 10)
+    plt.hist(circle_hist[:, :, 1], 10)
     plt.title("Imaginary Values Histogram")
     plt.xlabel("Value")
     plt.ylabel("Frequency")
@@ -212,7 +225,7 @@ def main():
 
     # Q4a: Edge detection for input image
     print("Q4: Generating edge-detection for the input image")
-    edge_detection = detect_edges(hist_real, hist_imag, img)
+    edge_detection = detect_edges(circle_hist_real, circle_hist_imag, circle_img, 168)
 
     cv2.putText(edge_detection, "Edge Detection:", (0, 150),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
@@ -222,14 +235,14 @@ def main():
 
     # Q4b: Edge detection for pentagon image
     print("Q4: Generating edge-detection for the pentagon")
-    # pentagon_hist_real, pentagon_hist_imag, pentagon_img = get_values(PENTAGON_LEFT)
-    # pentagon_edge_detection = detect_edges(pentagon_hist_real, pentagon_hist_imag, pentagon_img)
-    #
-    # cv2.putText(pentagon_edge_detection, "Edge Detection:", (0, 150),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
-    # cv2.putText(pentagon_edge_detection, "Pentagon", (50, 160),
-    #             cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
-    # cv2.imwrite("output/edge_pentagon.jpg", pentagon_edge_detection)
+    pentagon_img, pentagon_hist, pentagon_hist_real, pentagon_hist_imag, pentagon_height, pentagon_width = get_values(PENTAGON_LEFT, False)
+    pentagon_edge_detection = detect_edges(pentagon_hist_real, pentagon_hist_imag, pentagon_img, pentagon_height)
+
+    cv2.putText(pentagon_edge_detection, "Edge Detection:", (0, pentagon_width - 20),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
+    cv2.putText(pentagon_edge_detection, "Pentagon", (50, pentagon_width - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_4)
+    cv2.imwrite("output/edge_pentagon.jpg", pentagon_edge_detection)
 
 
 if __name__ == '__main__':
